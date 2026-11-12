@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.26@sha256:b27fde63cc160f04a81cf7cf43c6560b47d736a1f0e3babe17745e8fbdff198d AS builder
+FROM --platform=$BUILDPLATFORM cgr.dev/chainguard/go:latest@sha256:2ed63c9db04ba7d7e4d426ffd17afe1793df837f18194ddc251d15e90977a00b AS builder
 
 # OS and Arch args
 ARG TARGETOS
@@ -24,41 +24,21 @@ COPY errors/ errors/
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GO111MODULE=on go build -a -o manager cmd/main.go
 
 # Base image
-FROM registry.access.redhat.com/ubi10/ubi-minimal:latest@sha256:c039ecb9ac9db2db85e78b332d66521f6ce401cf812006a27bc7827018eac4a2
+FROM cgr.dev/chainguard/static:latest@sha256:fc42af33e643f20d08baf03cddcc1c02ba57052dfb02edb0d79f3fc47bcea8d9
 
 # Version of Operator (build arg)
 ARG VERSION="4.7.0"
 
-# User to run container as
-ARG USER="root"
-
-# Maintainer
-LABEL maintainer="Aerospike <support@aerospike.com>"
-
 # Labels
 LABEL name="aerospike-kubernetes-operator" \
-    vendor="Aerospike" \
     version="${VERSION}" \
-    release="1" \
     summary="Aerospike Kubernetes Operator" \
-    description="The Aerospike Kubernetes Operator automates the deployment and management of Aerospike enterprise clusters on Kubernetes" \
-    io.k8s.display-name="Aerospike Kubernetes Operator v${VERSION}" \
-    io.k8s.description="Aerospike Kubernetes Operator"
+    description="The Aerospike Kubernetes Operator automates the deployment and management of Aerospike enterprise clusters on Kubernetes"
 
-# Labels for RedHat Openshift platform
-LABEL io.openshift.tags="database,nosql,aerospike" \
-    io.openshift.non-scalable="false"
-
-# License file
-COPY LICENSE /licenses/
+COPY LICENSE /LICENSE
 
 WORKDIR /
 
 COPY --from=builder /workspace/manager .
-
-RUN chgrp 0 /manager \
-    && chmod g=u /manager
-
-USER ${USER}
 
 ENTRYPOINT ["/manager"]
